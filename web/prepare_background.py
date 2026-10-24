@@ -19,7 +19,7 @@ def unpack(a):
    else:out.append(rom[p]);p+=1
  return bytes(out)
 parts=[];rows=[];manifest=[]
-for ident in [0,2,4,5,12,14,16,22,24,28,29,32,33,34,35,36,38,40,41]:
+for ident in [0,2,4,5,12,14,16,22,24,26,28,29,30,32,33,34,35,36,38,40,41]:
  pointers=[int.from_bytes(rom[base+ident*12+i:base+ident*12+i+4],'little') for i in [0,4,8]]
  gfx=unpack(pointers[0]);p=pointers[1]-0x8000000;w,h=rom[p]+1,rom[p+1]+1
  assert 30<=w<=32 and 20<=h<=32
