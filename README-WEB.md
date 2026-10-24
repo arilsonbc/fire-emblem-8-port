@@ -4,9 +4,9 @@ Port em desenvolvimento em C/WebAssembly, sem emulador. Esta pasta contém o có
 
 ## Estado
 
-Título, menu, controles, mapas, combate, fases, diálogos, retratos e áudio nativo estão integrados no percurso até o capítulo 5. Natasha/Joshua, quatro vilas, reforços, arsenal/loja, compra/venda e final até o pedido do capítulo 5x usam dados e regras originais com apresentação adaptada. Cinquenta e oito suítes passaram no WASM normal e com AddressSanitizer. A campanha contínua com seed42 completou prólogo..5 no Normal (com baixas e Joshua não recrutado); no Difficult completou prólogo..4 e entrou em5. Os cenários específicos do capítulo5 passaram nas duas dificuldades; o piloto contínuo Difficult5 ainda perde unidades e não conclui a missão.
+Título, menu, controles, mapas, combate, fases, diálogos, retratos e áudio nativo estão integrados até a entrada e os eventos do capítulo5x. A troca original entre as equipes de Eirika e Ephraim preserva os registros das unidades e os saves. O final5x está validado por cenários específicos nas duas dificuldades e encerra no pedido do capítulo6, ainda não integrado. A campanha contínua seed42 completa prólogo..5 no Normal e chega a5x (com baixas e Joshua não recrutado); no Difficult completa prólogo..4 e entra em5. O piloto contínuo Difficult5 ainda perde unidades e não conclui a missão; os cenários específicos5/5x passaram nas duas dificuldades.
 
-Preparações livres, mapa-múndi completo e entrada no capítulo5x continuam pendentes. A implantação usa posições originais fixas para aliados existentes; animações/efeitos completos e tradução BR ainda não estão integrados. O início dos capítulos integrados pode ser gravado explicitamente no slot SRAM original; suspensão do turno atual continua pendente. Consulte `web/STATUS.md` para adaptações e evidências de validação. Ainda não é o jogo completo.
+Preparações livres, mapa-múndi completo e capítulo6 continuam pendentes. A implantação usa posições originais fixas para aliados existentes; animações/efeitos completos e tradução BR ainda não estão integrados. O início dos capítulos integrados pode ser gravado explicitamente no slot SRAM original; suspensão do turno atual continua pendente. Consulte `web/STATUS.md` para adaptações e evidências de validação. Ainda não é o jogo completo.
 
 ## Compilar localmente
 
