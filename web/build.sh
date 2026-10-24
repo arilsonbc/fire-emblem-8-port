@@ -99,8 +99,9 @@ node web/test_shop.cjs
 node web/test_ai_chapter5.cjs
 node web/test_chapter5_variants.cjs
 node web/test_pillage_chapter5.cjs
-echo 'WebAssembly compilado e testes aprovados. Saída: web/dist'
 
 node web/test_chapter5x.cjs
 node web/test_ai_chapter5x.cjs
 node web/test_gameover_chapter5x.cjs
+
+echo 'WebAssembly compilado e testes aprovados. Saída: web/dist'
