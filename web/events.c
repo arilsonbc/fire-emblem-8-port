@@ -228,7 +228,7 @@ void fe8_event_tick(int keys){
   int code=engine.pEventCurrent[0]>>8;gEventSlots[0]=0;int result=Command(&engine);executed++;
   if(blocked>=0)return;
   if(result==EVC_ADVANCE_CONTINUE||result==EVC_ADVANCE_YIELD)engine.pEventCurrent+=EVT_CMD_LEN(engine.pEventCurrent);
-  if(result==EVC_ERROR){blocked=code;return;}if(result==EVC_END){running=0;return;}
+  if(result==EVC_ERROR){blocked=code;return;}if(result==EVC_END){fe8_background_set(-1);running=0;return;} // Native gameplay event teardown restores the map presentation.
   if(result==EVC_ADVANCE_YIELD||result==EVC_STOP_YIELD)return;
  }
  blocked=257; // Bound work per update; malformed loops cannot hang the browser.
