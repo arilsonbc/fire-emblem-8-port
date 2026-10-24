@@ -91,7 +91,7 @@ static void SyncMaps(void){
  for(int i=1;i<256;i++){struct Unit *u=GetUnit(i);if(UNIT_IS_VALID(u)&&!(u->state&(US_HIDDEN|US_DEAD|US_NOT_DEPLOYED|US_RESCUED))&&u->xPos>=0&&u->yPos>=0&&u->xPos<gBmMapSize.x&&u->yPos<gBmMapSize.y)occupancy[u->yPos][u->xPos]=i;}
 }
 void fe8_tactical_reset(void){inventoryRow=inventoryAction=inventoryConfirm=supplyColumn=supplyRow=supplyChanged=stealPeer=stealRow=lastStolen=0;cantoActive=0;eventAction=1;tradePeer=tradeColumn=tradeRow=tradeChosenRow=hasTraded=0;tradeChosenColumn=-1;fe8_recovery_reset();fe8_ai_reset();targetCount=targetChoice=0;gActiveUnit=NULL;gActiveUnitId=selected=menuChoice=lastError=floodError=0;mode=-1;memset(movement,255,sizeof(movement));memset(squaresMoved,0,sizeof(squaresMoved));}
-int fe8_tactical_start(void){if(mode==0&&!fe8_event_busy())return 0;if(fe8_event_busy()||!fe8_map_active()||mode>0)return -1;SyncMaps();fe8_event_show_icons();gPlaySt.faction=FACTION_BLUE;if(!gPlaySt.chapterTurnNumber)gPlaySt.chapterTurnNumber=1;mode=0;selected=lastError=0;fe8_recovery_phase(FACTION_BLUE);fe8_audio_map_start();if(gPlaySt.chapterIndex>=1&&gPlaySt.chapterIndex<=4||gPlaySt.chapterIndex==6)fe8_event_phase();return 0;}
+int fe8_tactical_start(void){if(mode==0&&!fe8_event_busy())return 0;if(fe8_event_busy()||!fe8_map_active()||mode>0)return -1;SyncMaps();fe8_event_show_icons();gPlaySt.faction=FACTION_BLUE;if(!gPlaySt.chapterTurnNumber)gPlaySt.chapterTurnNumber=1;mode=0;selected=lastError=0;fe8_recovery_phase(FACTION_BLUE);fe8_audio_map_start();if(gPlaySt.chapterIndex>=1&&gPlaySt.chapterIndex<=5||gPlaySt.chapterIndex==6)fe8_event_phase();return 0;}
 int fe8_tactical_select(int index){
  if(mode!=0||gPlaySt.faction!=FACTION_BLUE||fe8_event_busy()||index<1||index>255)return -1;
  struct Unit *u=GetUnit(index);if(!UNIT_IS_VALID(u)||u->xPos<0||u->yPos<0||u->xPos>=gBmMapSize.x||u->yPos>=gBmMapSize.y||u->state&(US_DEAD|US_HIDDEN|US_NOT_DEPLOYED|US_RESCUED|US_IN_BALLISTA|US_UNDER_A_ROOF|US_BIT16))return -2;
@@ -219,7 +219,7 @@ int fe8_tactical_trade_choose(int column,int row){if(mode!=13||column<0||column>
 int fe8_tactical_can_talk(void){return TalkTargets(0)>0;}
 int fe8_tactical_begin_talk(void){int n=TalkTargets(1);if(!n)return -1;targetCount=n;targetChoice=0;mode=9;fe8_map_focus(GetUnit(targets[0].index)->xPos,GetUnit(targets[0].index)->yPos);return 0;}
 int fe8_tactical_talk(void){if(mode!=9||targetChoice>=targetCount)return -1;int result=fe8_event_talk(selected,targets[targetChoice].index);if(result<0)return result;fe8_audio_se(0x6a);eventAction=14;mode=8;return 0;}
-int fe8_tactical_can_seize(void){return mode==3&&gActiveUnit&&(gPlaySt.chapterIndex==1||gPlaySt.chapterIndex==3)&&gPlaySt.chapterModeIndex>=1&&gPlaySt.chapterModeIndex<=3&&!fe8_event_busy()&&UnitActionMenu_CanSeize(NULL,0)==MENU_ENABLED;}
+int fe8_tactical_can_seize(void){return mode==3&&gActiveUnit&&(gPlaySt.chapterIndex==1||gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==5)&&gPlaySt.chapterModeIndex>=1&&gPlaySt.chapterModeIndex<=3&&!fe8_event_busy()&&UnitActionMenu_CanSeize(NULL,0)==MENU_ENABLED;}
 int fe8_tactical_seize(void){if(!fe8_tactical_can_seize())return -1;struct Unit *u=gActiveUnit;if(fe8_event_seize(selected)<0)return -2;u->state|=US_HAS_MOVED|US_UNSELECTABLE;fe8_audio_se(0x6a);mode=0;selected=0;gActiveUnit=NULL;return 0;}
 static void FindTargets(void);
 int fe8_tactical_move(int x,int y){

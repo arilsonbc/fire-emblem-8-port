@@ -29,6 +29,7 @@ int fe8_event_info(int field);
 void fe8_event_advance(void);
 void fe8_event_confirm(void);
 int fe8_event_preview(void);
+int fe8_event_story_chapter(void);
 void fe8_chapter_start(void);
 void fe8_chapter_tick(int keys);
 void fe8_event_set_flag(int flag);

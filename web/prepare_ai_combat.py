@@ -35,7 +35,7 @@ functions=[fn('src/cp_battle.c',n) for n in names]+[fn('src/cp_utility.c',n) for
 for i,f in enumerate(functions):
  if f.startswith('s8 AiAttemptOffensiveAction'):
   start=f.index('    if (gActiveUnit->state & US_IN_BALLISTA)');end=f.index('    SetWorkingBmMap',start)
-  f=f[:start]+'''    if(gActiveUnit->state&US_IN_BALLISTA || (UNIT_CATTRIBUTES(gActiveUnit)&CA_BALLISTAE && gPlaySt.chapterIndex>3 && gPlaySt.chapterIndex!=6)){vmError=7;return 0;}
+  f=f[:start]+'''    if(gActiveUnit->state&US_IN_BALLISTA || (UNIT_CATTRIBUTES(gActiveUnit)&CA_BALLISTAE && gPlaySt.chapterIndex>3 && gPlaySt.chapterIndex!=5 && gPlaySt.chapterIndex!=6)){vmError=7;return 0;}
     if((UNIT_CATTRIBUTES(gActiveUnit)&CA_STEAL)&&GetUnitItemCount(gActiveUnit)<5){GenerateUnitMovementMap(gActiveUnit);MarkMovementMapEdges();if(AiAttemptStealActionWithinMovement()==1)return 0;}
     if(gAiState.flags&AI_FLAG_STAY){BmMapFill(gBmMapMovement,255);gBmMapMovement[gActiveUnit->yPos][gActiveUnit->xPos]=0;}else GenerateUnitMovementMap(gActiveUnit);
 ''' +f[end:]
