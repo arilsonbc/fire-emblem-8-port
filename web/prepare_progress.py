@@ -41,3 +41,5 @@ parts.append(function('src/bmusemind.c','ExecKeyItem').replace('gBattleTarget.st
 (root/'web/generated/progress_cutscene.h').write_text(function('src/bmunit.c','ClearCutsceneUnits'))
 shrink=function('src/bmcontainer.c','ShrinkConvoyItemList').replace('u16 * buffer = (void*) gGenericBuffer;','u16 nativeBuffer[CONVOY_ITEM_COUNT+1]={0};\n    u16 * buffer = nativeBuffer; // Deterministic zero tail replaces shared scratch-buffer residue.')
 (root/'web/generated/progress_convoy_remove.h').write_text(shrink+'\n'+function('src/bmcontainer.c','RemoveItemFromConvoy'))
+
+(root/'web/generated/fog_routines.h').write_text(function('src/bmunit.c','GetUnitFogViewRange')+'\n'+function('src/bmidoten.c','MapAddInRange'))
