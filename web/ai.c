@@ -43,7 +43,7 @@ int fe8_ai_info(int field){if(field==0)return prepared;if(field==1)return phaseI
 #include "generated/ai_vm_assets.h"
 static struct AiScr **gpAi1Table[]={aiVmA},**gpAi2Table[]={aiVmB};
 static struct Unit *aiScriptUnit;
-static struct {int decideState,unk7E,bestBlueMov,dangerMapFilled,flags,combatWeightTableId;u32 specialItemFlags;u8 cmd_result[8];} aiVmState;
+static struct {int decideState,unk7C,unk7E,bestBlueMov,dangerMapFilled,flags,combatWeightTableId;u32 specialItemFlags;u8 cmd_result[8];} aiVmState;
 static struct AiDecision gAiDecision;
 static struct Vec2 gBmMapSize;
 static u8 vmTerrain[64][64];
@@ -179,11 +179,20 @@ static void SyncVmMaps(void){
  for(int i=1;i<256;i++){struct Unit *u=GetUnit(i);if(UNIT_IS_VALID(u)&&!(u->state&(US_HIDDEN|US_DEAD|US_NOT_DEPLOYED|US_RESCUED))&&u->xPos>=0&&u->yPos>=0&&u->xPos<gBmMapSize.x&&u->yPos<gBmMapSize.y)vmOccupancy[u->yPos][u->xPos]=i;}
 }
 static void NativeLoot(u8 *pc){if(gpAiScriptCurrent->cmd==16)AiScriptCmd_10_DoLooting(pc);else AiScriptCmd_11_MoveTowardsSafety(pc);}
+s8 AiTryDoStaff(s8 (*isEnemy)(struct Unit *));
 static void NativeAction(u8 *pc){
  if(gpAiScriptCurrent->unk_08&&!ResolveAiShortList(gpAiScriptCurrent->unk_08)){vmError=6;return;}
- for(int i=0;i<5;i++)if(GetItemAttributes(aiScriptUnit->items[i])&(IA_MAGICDAMAGE|IA_STAFF)){vmError=7;return;}
- u8 chance=NextRN_N(100);if(chance<=gpAiScriptCurrent->unk_01){if(gpAiScriptCurrent->cmd==7)aiVmState.flags|=AI_FLAG_STAY;AiAttemptOffensiveAction(gpAiScriptCurrent->cmd==5&&gpAiScriptCurrent->unk_08?AiIsUnitEnemyAndNotInScrList:AiIsUnitEnemy);}else aiVmState.decideState=4;(*pc)++;
+ for(int i=0;i<5;i++){int item=aiScriptUnit->items[i],id=GetItemIndex(item);if(GetItemAttributes(item)&IA_MAGICDAMAGE||((GetItemAttributes(item)&IA_STAFF)&&(id!=ITEM_STAFF_HEAL&&id!=ITEM_STAFF_MEND&&id!=ITEM_STAFF_RECOVER))){vmError=7;return;}}
+ u8 chance=NextRN_N(100);if(chance<=gpAiScriptCurrent->unk_01){if(gpAiScriptCurrent->cmd==7)aiVmState.flags|=AI_FLAG_STAY;if(!AiTryDoStaff(AiIsUnitEnemy)&&!vmError)AiAttemptOffensiveAction(gpAiScriptCurrent->cmd==5&&gpAiScriptCurrent->unk_08?AiIsUnitEnemyAndNotInScrList:AiIsUnitEnemy);}else aiVmState.decideState=4;(*pc)++;
 }
+#define AI_ACTION_STAFF 5
+extern int GetItemRequiredExp(int item);
+static void GenerateMagicSealMap(int value){(void)value;for(int i=129;i<192;i++){struct Unit *u=GetUnit(i);if(UNIT_IS_VALID(u)&&UNIT_CATTRIBUTES(u)&CA_MAGICSEAL){vmError=7;return;}}} // Magic-seal maps remain guarded.
+#define gActiveUnit aiScriptUnit
+#define gAiState aiVmState
+#include "generated/ai_staff_routines.h"
+#undef gAiState
+#undef gActiveUnit
 static int RunRuntimeScript(int kind){
  gAiScriptKind=kind;u8 *pc=kind?&aiScriptUnit->ai_b_pc:&aiScriptUnit->ai_a_pc;runtimeScript=1;
  for(int n=0;n<256;n++){int id=kind?aiScriptUnit->ai2:aiScriptUnit->ai1,count=kind?sizeof(aiVmB)/sizeof(*aiVmB):sizeof(aiVmA)/sizeof(*aiVmA);if(id>=count||*pc>=(kind?aiVmBLengths[id]:aiVmALengths[id])){vmError=2;break;}struct AiScr *c=(kind?aiVmB[id]:aiVmA[id])+*pc;if(c->cmd==AI_CMD_LABEL){vmError=3;break;}if(kind)AiTryExecScriptB();else AiTryExecScriptA();if(vmError||gAiScriptEnded)break;if(n==255)vmError=4;}
@@ -192,7 +201,7 @@ static int RunRuntimeScript(int kind){
 static void StartPhase(void){phaseIndex=phaseStep=phaseError=phaseCompleted=0;memset(&aiVmState,0,sizeof(aiVmState));aiVmState.flags=AI_FLAG_0;aiVmState.unk7E=255;aiVmState.specialItemFlags=nativeAiItemConfig[(u8)gPlaySt.chapterIndex];for(int i=1;i<64;i++){struct Unit *u=GetUnit(i);if(UNIT_IS_VALID(u)&&!(u->state&(US_HIDDEN|US_DEAD|US_BIT16))&&UNIT_MOV(u)>aiVmState.bestBlueMov)aiVmState.bestBlueMov=UNIT_MOV(u);}}
 int fe8_ai_tick(void){
  if(prepared<0||phaseError)return -1;if(fe8_event_busy()||fe8_event_info(12))return 0;
- if(phaseStep==1){if(fe8_units_busy())return 0;if(gAiDecision.actionId==AI_ACTION_COMBAT){int r=fe8_battle_attack(gAiDecision.unitId,gAiDecision.targetId,gAiDecision.itemSlot);if(r<0){phaseError=20-r;return -1;}phaseStep=2;return 0;}if(gAiDecision.actionId==AI_ACTION_STEAL&&fe8_unit_steal(gAiDecision.unitId,gAiDecision.targetId,gAiDecision.itemSlot)<0){phaseError=14;return -1;}if(gAiDecision.actionId==AI_ACTION_USEITEM&&((GetItemIndex(GetUnit(gAiDecision.unitId)->items[gAiDecision.itemSlot])==ITEM_DOORKEY||GetItemIndex(GetUnit(gAiDecision.unitId)->items[gAiDecision.itemSlot])==ITEM_LOCKPICK)?fe8_tactical_npc_key(gAiDecision.unitId,gAiDecision.itemSlot):fe8_recovery_item(gAiDecision.unitId,gAiDecision.itemSlot))<0){phaseError=12;return -1;}if(gAiDecision.actionId==AI_ACTION_PILLAGE&&(fe8_map_terrain(gAiDecision.xMove,gAiDecision.yMove)==TERRAIN_CHEST_FULL?fe8_tactical_npc_key(gAiDecision.unitId,gAiDecision.itemSlot):fe8_event_pillage(gAiDecision.unitId))<0){phaseError=13;return -1;}phaseStep=2;}
+ if(phaseStep==1){if(fe8_units_busy())return 0;if(gAiDecision.actionId==AI_ACTION_STAFF){int r=fe8_battle_heal(gAiDecision.unitId,gAiDecision.targetId,gAiDecision.itemSlot);if(r<0){phaseError=20-r;return -1;}phaseStep=2;return 0;}if(gAiDecision.actionId==AI_ACTION_COMBAT){int r=fe8_battle_attack(gAiDecision.unitId,gAiDecision.targetId,gAiDecision.itemSlot);if(r<0){phaseError=20-r;return -1;}phaseStep=2;return 0;}if(gAiDecision.actionId==AI_ACTION_STEAL&&fe8_unit_steal(gAiDecision.unitId,gAiDecision.targetId,gAiDecision.itemSlot)<0){phaseError=14;return -1;}if(gAiDecision.actionId==AI_ACTION_USEITEM&&((GetItemIndex(GetUnit(gAiDecision.unitId)->items[gAiDecision.itemSlot])==ITEM_DOORKEY||GetItemIndex(GetUnit(gAiDecision.unitId)->items[gAiDecision.itemSlot])==ITEM_LOCKPICK)?fe8_tactical_npc_key(gAiDecision.unitId,gAiDecision.itemSlot):fe8_recovery_item(gAiDecision.unitId,gAiDecision.itemSlot))<0){phaseError=12;return -1;}if(gAiDecision.actionId==AI_ACTION_PILLAGE&&(fe8_map_terrain(gAiDecision.xMove,gAiDecision.yMove)==TERRAIN_CHEST_FULL?fe8_tactical_npc_key(gAiDecision.unitId,gAiDecision.itemSlot):fe8_event_pillage(gAiDecision.unitId))<0){phaseError=13;return -1;}phaseStep=2;}
  if(phaseStep==2){if(fe8_battle_busy())return 0;struct Unit *u=GetUnit(gAiDecision.unitId);u->state|=US_HAS_MOVED_AI|US_UNSELECTABLE;phaseStep=0;phaseIndex++;phaseCompleted++;fe8_event_actor((u8)u->index);fe8_event_post_action();return 0;}
  if(phaseIndex>=prepared)return 1;
  int index=gAiState.units[phaseIndex];struct Unit *real=GetUnit(index);if(!UNIT_IS_VALID(real)||real->state&(US_DEAD|US_UNSELECTABLE)){phaseIndex++;return 0;}
@@ -215,7 +224,7 @@ int fe8_ai_tick(void){
  if(vmError){phaseError=vmError;aiScriptUnit=NULL;return -1;}
  real->ai1=copy.ai1;real->ai2=copy.ai2;real->ai_a_pc=copy.ai_a_pc;real->ai_b_pc=copy.ai_b_pc;real->aiFlags=copy.aiFlags;real->ai_counter=copy.ai_counter;real->state|=US_HAS_MOVED_AI;aiScriptUnit=NULL;
  if(!gAiDecision.actionPerformed||(gAiDecision.xMove==real->xPos&&gAiDecision.yMove==real->yPos&&gAiDecision.actionId==AI_ACTION_NONE)){phaseIndex++;return 0;}
- if(gAiDecision.actionId!=AI_ACTION_NONE&&gAiDecision.actionId!=AI_ACTION_COMBAT&&gAiDecision.actionId!=AI_ACTION_USEITEM&&gAiDecision.actionId!=AI_ACTION_PILLAGE&&gAiDecision.actionId!=AI_ACTION_STEAL){phaseError=10;return -1;}
+ if(gAiDecision.actionId!=AI_ACTION_STAFF&&gAiDecision.actionId!=AI_ACTION_NONE&&gAiDecision.actionId!=AI_ACTION_COMBAT&&gAiDecision.actionId!=AI_ACTION_USEITEM&&gAiDecision.actionId!=AI_ACTION_PILLAGE&&gAiDecision.actionId!=AI_ACTION_STEAL){phaseError=10;return -1;}
  if(fe8_tactical_npc_move(index,gAiDecision.xMove,gAiDecision.yMove)<0){phaseError=11;return -1;}fe8_map_focus(gAiDecision.xMove,gAiDecision.yMove);phaseStep=1;return 0;
 }
 

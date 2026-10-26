@@ -29,6 +29,7 @@ python3 web/prepare_background.py
 python3 web/prepare_loot.py
 python3 web/prepare_gameover.py
 python3 web/prepare_shop.py
+python3 web/prepare_ai_staff.py
 emcc src/rng.c src/proc.c web/bridge.c web/proc_bridge.c web/generated/title_logic.c web/graphics.c web/palette.c web/menu_video.c web/menu.c web/save.c web/map.c web/fog.c web/units.c web/events.c web/dialogue.c web/battle.c web/support.c web/tactical.c web/ai.c web/recovery.c web/death.c web/audio.c web/background.c web/gameover.c web/generated/fade.c web/generated/gameflow.c web/generated/menu_fades.c -include web/compat.h -Iinclude -Iweb \
   -O2 -fwrapv --no-entry -sMODULARIZE=1 -sEXPORT_NAME=createFE8Module \
   -sENVIRONMENT=web,node \
