@@ -1,4 +1,5 @@
 #include "tactical.h"
+#include "fog.h"
 #include "proc.h"
 #include "battle.h"
 #include "support.h"
@@ -29,7 +30,7 @@ struct Trap {int xPos,yPos,type;};
 static struct Trap *GetTrapAt(int x,int y){(void)x;(void)y;return NULL;}
 static int CanCharacterBePrepMoved(int pid){(void)pid;return 0;}
 static void sub_802C334(void){}
-static int squaresMoved[256];
+static int squaresMoved[256],fogBump;
 static void PidStatsAddSquaresMoved(int pid,int count){squaresMoved[pid&255]+=count;}
 static void PidStatsSubFavval08(int pid){(void)pid;} // Usage statistics persistence remains a separate integration.
 
@@ -85,12 +86,13 @@ static void CallARM_FillMovementMap(void){
  floodError=3;
 }
 static void SyncMaps(void){
+ fe8_fog_refresh();memset(hiddenMap,0,sizeof(hiddenMap));
  gBmMapSize.x=fe8_map_info(1);gBmMapSize.y=fe8_map_info(2);
  memset(occupancy,0,sizeof(occupancy));
  for(int y=0;y<64;y++){gBmMapHidden[y]=hiddenMap[y];gBmMapTerrain[y]=terrain[y];gBmMapUnit[y]=occupancy[y];gBmMapMovement[y]=movement[y];for(int x=0;x<64;x++){int t=fe8_map_terrain(x,y);terrain[y][x]=t<0?0:t;}}
- for(int i=1;i<256;i++){struct Unit *u=GetUnit(i);if(UNIT_IS_VALID(u)&&!(u->state&(US_HIDDEN|US_DEAD|US_NOT_DEPLOYED|US_RESCUED))&&u->xPos>=0&&u->yPos>=0&&u->xPos<gBmMapSize.x&&u->yPos<gBmMapSize.y)occupancy[u->yPos][u->xPos]=i;}
+ for(int i=1;i<256;i++){struct Unit *u=GetUnit(i);if(UNIT_IS_VALID(u)&&!(u->state&(US_HIDDEN|US_DEAD|US_NOT_DEPLOYED|US_RESCUED))&&u->xPos>=0&&u->yPos>=0&&u->xPos<gBmMapSize.x&&u->yPos<gBmMapSize.y){if(UNIT_FACTION(u)==FACTION_RED&&!fe8_fog_visible(u->xPos,u->yPos)&&gPlaySt.faction!=FACTION_RED)hiddenMap[u->yPos][u->xPos]|=HIDDEN_BIT_UNIT;else occupancy[u->yPos][u->xPos]=i;}}
 }
-void fe8_tactical_reset(void){inventoryRow=inventoryAction=inventoryConfirm=supplyColumn=supplyRow=supplyChanged=stealPeer=stealRow=lastStolen=0;cantoActive=0;eventAction=1;tradePeer=tradeColumn=tradeRow=tradeChosenRow=hasTraded=0;tradeChosenColumn=-1;fe8_recovery_reset();fe8_ai_reset();targetCount=targetChoice=0;gActiveUnit=NULL;gActiveUnitId=selected=menuChoice=lastError=floodError=0;mode=-1;memset(movement,255,sizeof(movement));memset(squaresMoved,0,sizeof(squaresMoved));}
+void fe8_tactical_reset(void){fogBump=0;inventoryRow=inventoryAction=inventoryConfirm=supplyColumn=supplyRow=supplyChanged=stealPeer=stealRow=lastStolen=0;cantoActive=0;eventAction=1;tradePeer=tradeColumn=tradeRow=tradeChosenRow=hasTraded=0;tradeChosenColumn=-1;fe8_recovery_reset();fe8_ai_reset();targetCount=targetChoice=0;gActiveUnit=NULL;gActiveUnitId=selected=menuChoice=lastError=floodError=0;mode=-1;memset(movement,255,sizeof(movement));memset(squaresMoved,0,sizeof(squaresMoved));}
 int fe8_tactical_start(void){if(mode==0&&!fe8_event_busy())return 0;if(fe8_event_busy()||!fe8_map_active()||mode>0)return -1;SyncMaps();fe8_event_show_icons();gPlaySt.faction=FACTION_BLUE;if(!gPlaySt.chapterTurnNumber)gPlaySt.chapterTurnNumber=1;mode=0;selected=lastError=0;fe8_recovery_phase(FACTION_BLUE);fe8_audio_map_start();if(gPlaySt.chapterIndex>=1&&gPlaySt.chapterIndex<=5||gPlaySt.chapterIndex==6)fe8_event_phase();return 0;}
 int fe8_tactical_select(int index){
  if(mode!=0||gPlaySt.faction!=FACTION_BLUE||fe8_event_busy()||index<1||index>255)return -1;
@@ -186,10 +188,10 @@ static int HealTargets(int populate){if(mode!=3||!gActiveUnit||fe8_event_busy()|
 int fe8_tactical_can_heal(void){return HealTargets(0)>0;}
 int fe8_tactical_begin_heal(void){int n=HealTargets(1);if(!n)return -1;targetCount=n;targetChoice=0;mode=11;fe8_map_focus(GetUnit(targets[0].index)->xPos,GetUnit(targets[0].index)->yPos);return 0;}
 int fe8_tactical_heal(void){if(mode!=11||targetChoice>=targetCount)return -1;int result=fe8_battle_heal(selected,targets[targetChoice].index,targets[targetChoice].slot);if(result<0)return result;fe8_audio_se(0x6a);mode=6;return result;}
-static int ItemTargets(int populate){if(mode!=3||!gActiveUnit||fe8_event_busy()||gActiveUnit->curHP>=GetUnitMaxHp(gActiveUnit)||gActiveUnit->state&US_HAS_MOVED)return 0;int n=0;for(int slot=0;slot<5;slot++){int id=gActiveUnit->items[slot]&255;if(id!=ITEM_VULNERARY&&id!=ITEM_ELIXIR)continue;if(populate)targets[n]=(typeof(*targets)){selected,slot};n++;}return n;}
+static int ItemTargets(int populate){if(mode!=3||!gActiveUnit||fe8_event_busy()||gActiveUnit->state&US_HAS_MOVED)return 0;int n=0;for(int slot=0;slot<5;slot++){int id=gActiveUnit->items[slot]&255;if(!fe8_fog_can_torch(selected,slot)&&((id!=ITEM_VULNERARY&&id!=ITEM_ELIXIR)||gActiveUnit->curHP>=GetUnitMaxHp(gActiveUnit)))continue;if(populate)targets[n]=(typeof(*targets)){selected,slot};n++;}return n;}
 int fe8_tactical_can_item(void){return ItemTargets(0)>0;}
 int fe8_tactical_begin_item(void){int n=ItemTargets(1);if(!n)return -1;targetCount=n;targetChoice=0;mode=10;return 0;}
-int fe8_tactical_use_item(void){if(mode!=10||targetChoice>=targetCount||gActiveUnit->curHP>=GetUnitMaxHp(gActiveUnit))return -1;int result=fe8_recovery_item(selected,targets[targetChoice].slot);if(result<0)return result;fe8_audio_se(0x6a);mode=3;FinishAction(0x1a);return result;}
+int fe8_tactical_use_item(void){if(mode!=10||targetChoice>=targetCount)return -1;int slot=targets[targetChoice].slot;if(fe8_fog_can_torch(selected,slot)){int result=fe8_fog_use_torch(selected,slot);if(result<0)return result;fe8_audio_se(0x6a);mode=3;FinishAction(0x1a);return 1;}if(gActiveUnit->curHP>=GetUnitMaxHp(gActiveUnit))return -1;int result=fe8_recovery_item(selected,targets[targetChoice].slot);if(result<0)return result;fe8_audio_se(0x6a);mode=3;FinishAction(0x1a);return result;}
 int fe8_tactical_can_visit(void){if(mode!=3||!gActiveUnit||fe8_event_busy())return 0;SyncMaps();return VisitCommandUsability(NULL,0)==MENU_ENABLED;}
 int fe8_tactical_visit(void){if(!fe8_tactical_can_visit())return -1;int result=fe8_event_visit(selected);if(result<0)return result;fe8_audio_se(0x6a);eventAction=16;mode=8;return 0;}
 static int TalkTargets(int populate){if(mode!=3||!gActiveUnit||fe8_event_busy()||gActiveUnit->state&US_HAS_MOVED||gActiveUnit->statusIndex==3)return 0;int n=0;for(int y=gBmMapSize.y-1;y>=0;y--)for(int x=gBmMapSize.x-1;x>=0;x--){if(abs(x-gActiveUnit->xPos)+abs(y-gActiveUnit->yPos)!=1)continue;int index=fe8_unit_at(x,y);if(index<0||GetUnit(index)->statusIndex==2||GetUnit(index)->statusIndex==4||!fe8_event_talk_available(selected,index))continue;if(populate)targets[n]=(typeof(*targets)){index,-1};n++;}return n;}
@@ -228,8 +230,9 @@ int fe8_tactical_move(int x,int y){
  u32 queue[128];int px=gActiveUnitMoveOrigin.x,py=gActiveUnitMoveOrigin.y,n=0;
  for(;n<MOVE_CMD_MAX_COUNT-1&&path[n]!=MOVE_CMD_HALT;n++){switch(path[n]){case 0:px--;break;case 1:px++;break;case 2:py++;break;case 3:py--;break;default:return -3;}queue[n*2]=px|(py<<6);queue[n*2+1]=0;}
  if(px!=x||py!=y)return -6;
+ fogBump=0;int bx=gActiveUnitMoveOrigin.x,by=gActiveUnitMoveOrigin.y;for(int k=0;k<n;k++){int nx=queue[k*2]&63,ny=queue[k*2]>>6&63;if(hiddenMap[ny][nx]&HIDDEN_BIT_UNIT){n=k;x=bx;y=by;fogBump=1;break;}bx=nx;by=ny;}
  gActionData.moveCount=movement[y][x];menuChoice=0;
- if(n){if(fe8_unit_move_queue_index((u8)gActiveUnit->index,queue,n*2)<0)return -4;mode=2;}else if(cantoActive){FinishAction(UNIT_ACTION_WAIT);}else{mode=3;FindTargets();}
+ if(fogBump&&!n){FinishAction(UNIT_ACTION_WAIT);fogBump=0;}else if(n){if(fe8_unit_move_queue_index((u8)gActiveUnit->index,queue,n*2)<0)return -4;mode=2;}else if(cantoActive){FinishAction(UNIT_ACTION_WAIT);}else{mode=3;FindTargets();}
  fe8_map_focus(x,y);return 0;
 }
 static void FindTargets(void){
@@ -264,7 +267,7 @@ int fe8_tactical_wait(void){return mode==3?FinishAction(UNIT_ACTION_WAIT):-1;}
 void fe8_tactical_tick(int keys){
  if(mode<0||fe8_event_busy())return;
  if(mode==8){mode=3;FinishAction(eventAction);return;}
- if(mode==2){if(!fe8_units_busy()){if(cantoActive)FinishAction(UNIT_ACTION_WAIT);else{mode=3;FindTargets();}}return;}
+ if(mode==2){if(!fe8_units_busy()){if(cantoActive||fogBump){fogBump=0;FinishAction(UNIT_ACTION_WAIT);}else{mode=3;FindTargets();}}return;}
  if(mode==6){if(!fe8_battle_busy()){mode=3;FinishAction(fe8_battle_info(18)==2?UNIT_ACTION_STAFF:UNIT_ACTION_COMBAT);}return;}
  if(mode>=25&&mode<=27){NativeShopTick(keys);return;}
  if(mode==24){if(keys&2){fe8_tactical_inventory_discard(0);return;}if(keys&1){fe8_tactical_inventory_discard(!inventoryConfirm);return;}if(keys&240)inventoryConfirm^=1;return;}

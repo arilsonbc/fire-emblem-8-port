@@ -1,4 +1,5 @@
 #include "recovery.h"
+#include "fog.h"
 #include "generated/battle_types.h"
 #include "units.h"
 #include "map.h"
@@ -16,7 +17,7 @@ static void AddTarget(int x,int y,int index,int amount){(void)x;(void)y;if(count
 int fe8_recovery_phase(int faction){
  if((faction!=0&&faction!=64&&faction!=128)||!fe8_map_active())return -1;
  for(int y=0;y<64;y++){gBmMapTerrain[y]=terrain[y];for(int x=0;x<64;x++){int t=fe8_map_terrain(x,y);terrain[y][x]=t<0?0:t;}}
- lastHealed=lastCured=0;MakeTerrainHealTargetList(faction);
+ fe8_fog_phase(faction);lastHealed=lastCured=0;MakeTerrainHealTargetList(faction);
  for(int i=0;i<count;i++){struct Unit *u=GetUnit(targets[i].index);if(targets[i].amount<0){SetUnitStatus(u,0);lastCured++;}else{int hp=u->curHP;AddUnitHp(u,targets[i].amount);lastHealed+=u->curHP-hp;}}
  return count;
 }
