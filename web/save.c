@@ -140,7 +140,7 @@ void fe8_save_checkpoint_reset(void){checkpointCaptured=checkpointSavedSerial=ch
 void fe8_save_playtime_tick(void){if(playtimeFrames<215999940u)playtimeFrames++;}
 int fe8_save_checkpoint_capture(void){
  checkpointCaptured=0;int slot=gPlaySt.gameSaveSlot,chapter=(u8)gPlaySt.chapterIndex;
- if((chapter>6)||slot<0||slot>2||!fe8_save_valid(slot))return -1;
+ if((chapter>7)||slot<0||slot>2||!fe8_save_valid(slot))return -1;
  struct SaveBlockInfo info;if(!ReadSaveBlockInfo(&info,slot))return -2;
  struct GameSaveBlock *source=GetSaveReadAddr(slot);if(source->playSt.playthroughIdentifier!=gPlaySt.playthroughIdentifier)return -3;
  memcpy(&checkpointOrigin,source,sizeof(checkpointOrigin));memcpy(&chapterStart,source,sizeof(chapterStart));chapterStart.playSt=gPlaySt;chapterStart.playSt.chapterTurnNumber=0;chapterStart.playSt.faction=64;chapterStart.playSt.time_saved=playtimeFrames;
