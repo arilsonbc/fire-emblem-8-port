@@ -1,4 +1,5 @@
 #include "map.h"
+#include "fog.h"
 #include "background.h"
 #include "dialogue.h"
 #include "battle.h"
@@ -79,15 +80,15 @@ void fe8_map_tick(int keys){
 static void Pixel(int x,int y,int color){if(x<0||y<0||x>=240||y>=160)return;u8 *p=pixels+(y*240+x)*4;for(int c=0;c<3;c++){int v=(color>>(c*5))&31;p[c]=(v<<3)|(v>>2);}p[3]=255;}
 int fe8_map_tile(int x,int y,int part){
  if(active<0||x<0||y<0||x>=gBmMapSize.x||y>=gBmMapSize.y||part<0||part>3)return -1;
- u16 out[64]={0};DisplayBmTile(out,0,0,x,y);return out[(part>>1)*32+(part&1)];
+ fogCells[y][x]=fe8_fog_visible(x,y);u16 out[64]={0};DisplayBmTile(out,0,0,x,y);return out[(part>>1)*32+(part&1)];
 }
 u8 *fe8_map_pixels(void){
- if(active<0)return pixels;
+ if(active<0)return pixels;fe8_fog_refresh();
  for(int y=0;y<160;y++)for(int x=0;x<240;x++){
   int wx=x+gBmSt.camera.x,wy=y+gBmSt.camera.y;
   if(wx>=gBmMapSize.x*16||wy>=gBmMapSize.y*16){Pixel(x,y,0);continue;}
   int bx=wx>>4,by=wy>>4,id=baseCells[by][bx];int part=((wy&8)>>2)+((wx&8)>>3);
-  int tile=(6<<12)+sTilesetConfig[id+part],px=wx&7,py=wy&7;
+  int tile=((fe8_fog_visible(bx,by)?6:11)<<12)+sTilesetConfig[id+part],px=wx&7,py=wy&7;
   if(tile&0x400)px=7-px;if(tile&0x800)py=7-py;
   // SetupBackgrounds default BG3 character base is 0x8000 (hardware.c).
   int offset=0x8000+(tile&1023)*32+py*4+px/2;int index=(bgVram[offset]>>((px&1)*4))&15;

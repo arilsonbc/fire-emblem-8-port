@@ -1,4 +1,5 @@
 #include "units.h"
+#include "fog.h"
 #include "support.h"
 #include "events.h"
 #include "tactical.h"
@@ -113,14 +114,14 @@ int fe8_unit_change_faction(int index,int faction){
  struct Unit *dest=GetFreeUnit(faction);if(!dest)return -3;int next=(u8)dest->index;struct Motion motion=motions[index];UnitChangeFaction(u,faction);memset(motions+index,0,sizeof(*motions));motions[next]=motion;return next;
 }
 int fe8_units_count(void){int count=0;for(int i=1;i<256;i++)if(UNIT_IS_VALID(units+i))count++;return count;}
-int fe8_unit_info(int index,int field){if(index<1||index>255)return -1;struct Unit *u=units+index;if(!UNIT_IS_VALID(u))return -1;switch(field){case 0:return u->pCharacterData->number;case 1:return u->pClassData->number;case 2:return (u8)u->index&192;case 3:return u->xPos;case 4:return u->yPos;case 5:return u->maxHP;case 6:return u->curHP;case 7:return u->pow;case 8:return u->skl;case 9:return u->spd;case 10:return u->def;case 11:return u->res;case 12:return u->lck;case 13:return u->level;case 14:return u->exp;case 15:return u->state;case 16:return u->pCharacterData->nameTextId;case 17:return u->pClassData->baseMov+u->movBonus;case 18:return motions[index].px;case 19:return motions[index].py;case 20:return u->pClassData->SMSId;case 21:return u->conBonus;case 22:return u->movBonus;case 23:return u->supportBits;case 24:return u->ai1;case 25:return u->ai2;case 26:return u->ai_config;case 27:return UNIT_LEADER_CHARACTER(u);case 61:return GetUnitSkill(u);case 62:return GetUnitSpeed(u);case 60:return GetUnitAid(u);case 58:return u->rescue;case 59:return UNIT_CON(u);case 28:return u->ai_a_pc;case 29:return u->ai_b_pc;default:if(field>=30&&field<35)return u->items[field-30];if(field>=40&&field<48)return u->ranks[field-40];if(field>=50&&field<57)return u->supports[field-50];return -1;}}
+int fe8_unit_info(int index,int field){if(index<1||index>255)return -1;struct Unit *u=units+index;if(!UNIT_IS_VALID(u))return -1;switch(field){case 0:return u->pCharacterData->number;case 1:return u->pClassData->number;case 2:return (u8)u->index&192;case 3:return u->xPos;case 4:return u->yPos;case 5:return u->maxHP;case 6:return u->curHP;case 7:return u->pow;case 8:return u->skl;case 9:return u->spd;case 10:return u->def;case 11:return u->res;case 12:return u->lck;case 13:return u->level;case 14:return u->exp;case 15:return u->state;case 16:return u->pCharacterData->nameTextId;case 17:return u->pClassData->baseMov+u->movBonus;case 18:return motions[index].px;case 19:return motions[index].py;case 20:return u->pClassData->SMSId;case 21:return u->conBonus;case 22:return u->movBonus;case 23:return u->supportBits;case 24:return u->ai1;case 25:return u->ai2;case 26:return u->ai_config;case 27:return UNIT_LEADER_CHARACTER(u);case 63:return u->torchDuration;case 61:return GetUnitSkill(u);case 62:return GetUnitSpeed(u);case 60:return GetUnitAid(u);case 58:return u->rescue;case 59:return UNIT_CON(u);case 28:return u->ai_a_pc;case 29:return u->ai_b_pc;default:if(field>=30&&field<35)return u->items[field-30];if(field>=40&&field<48)return u->ranks[field-40];if(field>=50&&field<57)return u->supports[field-50];return -1;}}
 void fe8_units_render(u8 *rgba,int cameraX,int cameraY,int clock){
  // Source standing sheet phase: 0..31 frame0, 32..35 frame1, 36..67 frame2, 68..71 frame1.
  int phase=clock%72,frame=phase>=68?1:phase>=36?2:phase>=32?1:0;
  // Native redraw sorts by foot position, matching the original SMS handle ordering.
  for(int foot=-32;foot<192;foot++)for(int i=255;i>0;i--){
   struct Unit *u=units+i;if(!UNIT_IS_VALID(u)||u->xPos<0||u->yPos<0||((u->state&(US_DEAD|US_NOT_DEPLOYED|US_RESCUED))||((u->state&US_HIDDEN)&&!fe8_tactical_show_active(i))))continue;
-  int sy=motions[i].py-cameraY;if(sy!=foot)continue;int sms=u->pClassData->SMSId;if(sms>=sizeof(standingSprites)/sizeof(*standingSprites)){unitError++;continue;}
+  if(UNIT_FACTION(u)==128&&!fe8_fog_visible(u->xPos,u->yPos))continue;int sy=motions[i].py-cameraY;if(sy!=foot)continue;int sms=u->pClassData->SMSId;if(sms>=sizeof(standingSprites)/sizeof(*standingSprites)){unitError++;continue;}
   int size=standingSprites[sms].size,w=size==2?32:16,h=size==0?16:32;int offset=frame*w*h/2;if(offset+w*h/2>standingSprites[sms].bytes){unitError++;continue;}const u8 *data=standingSprites[sms].data+offset;
   int sx=motions[i].px-cameraX-(size==2?8:0);sy-=h-16;int faction=UNIT_FACTION(u),bank=faction==128?1:faction==64?2:0;
   if(u->state&US_UNSELECTABLE)bank=3;
@@ -147,7 +148,7 @@ int fe8_unit_move_queue_index(int index,const u32 *queue,int length){
 int fe8_unit_move_queue(int pid,const u32 *queue,int length){struct Unit *u=GetUnitFromCharId(pid);return u?fe8_unit_move_queue_index((u8)u->index,queue,length):-1;}
 void fe8_units_apply_palette(void){memcpy(gPaletteBuffer+448,unitSpritePalettes,128);}
 
-int fe8_unit_at(int x,int y){for(int i=1;i<256;i++)if(UNIT_IS_VALID(units+i)&&!(units[i].state&(US_HIDDEN|US_DEAD|US_NOT_DEPLOYED|US_RESCUED))&&units[i].xPos==x&&units[i].yPos==y)return i;return -1;}
+int fe8_unit_at(int x,int y){for(int i=1;i<256;i++)if(UNIT_IS_VALID(units+i)&&!(units[i].state&(US_HIDDEN|US_DEAD|US_NOT_DEPLOYED|US_RESCUED))&&units[i].xPos==x&&units[i].yPos==y){if(UNIT_FACTION(units+i)==128&&!fe8_fog_visible(x,y))continue;return i;}return -1;}
 int fe8_units_errors(void){return unitError;}
 
 void fe8_unit_remove_index(int index){if(index>0&&index<256){memset(motions+index,0,sizeof(*motions));ClearUnit(GetUnit(index));}}

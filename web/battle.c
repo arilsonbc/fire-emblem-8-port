@@ -1,4 +1,5 @@
 #include "battle.h"
+#include "fog.h"
 #include "support.h"
 #include "death.h"
 #include "events.h"
@@ -94,6 +95,7 @@ static int PairAt(int ai,int bi,int slot,int x,int y){
  struct Unit *a=GetUnit(ai),*b=GetUnit(bi);
  if(!Supported(a)||!Supported(b)||b->state&(US_HIDDEN|US_NOT_DEPLOYED|US_RESCUED)||a->state&(US_NOT_DEPLOYED|US_RESCUED))return -2;
  if(((UNIT_FACTION(a)^UNIT_FACTION(b))&128)==0)return -3;
+ if(UNIT_FACTION(a)==FACTION_BLUE&&!fe8_fog_visible(b->xPos,b->yPos))return -3;
  // Triangle-attack eligibility is evaluated by the original routine during real/simulated hits.
  if(a->statusIndex==UNIT_STATUS_SLEEP||a->statusIndex==UNIT_STATUS_PETRIFY||a->statusIndex==UNIT_STATUS_13)return -4;
  for(int i=0;i<5;i++)if((GetItemAttributes(a->items[i])|GetItemAttributes(b->items[i]))&IA_MAGICDAMAGE)return -4;
