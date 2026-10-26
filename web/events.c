@@ -189,7 +189,14 @@ static int Command(struct EventEngineProc *p){
  case 39:{int id=a;if(id==-1)id=fe8_map_change_at(gEventSlots[11]&65535,gEventSlots[11]>>16);else if(id==-2){if(!eventActor)return EVC_ERROR;id=fe8_map_change_at(eventActor->xPos,eventActor->yPos);}if(id<0)return EVC_ERROR;return fe8_map_change(id,sub&1)<0?EVC_ERROR:EVC_ADVANCE_CONTINUE;}
  case 42:{int to=a<0?(int)gEventSlots[2]:a;if(preview||!(((gPlaySt.chapterIndex==0&&to==1||gPlaySt.chapterIndex==6&&to==5)&&sub==EVSUBCMD_MNC2)||((gPlaySt.chapterIndex==1&&to==0x38||gPlaySt.chapterIndex==0x38&&to==2||gPlaySt.chapterIndex==2&&to==3||(gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==27&&engine.chapterIndex==3)&&to==4||gPlaySt.chapterIndex==4&&to==6||engine.chapterIndex==5&&gPlaySt.chapterIndex==8&&to==7)&&sub==EVSUBCMD_MNCH)))return EVC_ERROR;return Event2A_MoveToChapter(p);}
  case 43:if(sub!=2)return EVC_ERROR;noRedaNext=1;return EVC_ADVANCE_CONTINUE;
- case 62:if(gPlaySt.chapterIndex!=4&&gPlaySt.chapterIndex!=6&&gPlaySt.chapterIndex!=7)return EVC_ERROR;return fe8_units_deploy_existing(gPlaySt.chapterIndex==7?UnitDef_Event_Ch6Ally_ADDRESS:gPlaySt.chapterIndex==6?UnitDef_Event_Ch5Ally_ADDRESS:UnitDef_Event_Ch4Ally_ADDRESS)<0?EVC_ERROR:EVC_ADVANCE_YIELD; // Native fixed original deployment; preparation UI remains pending.
+ case 62:{
+  if(gPlaySt.chapterIndex!=4&&gPlaySt.chapterIndex!=6&&gPlaySt.chapterIndex!=7)return EVC_ERROR;
+  if(fe8_units_deploy_existing(gPlaySt.chapterIndex==7?UnitDef_Event_Ch6Ally_ADDRESS:gPlaySt.chapterIndex==6?UnitDef_Event_Ch5Ally_ADDRESS:UnitDef_Event_Ch4Ally_ADDRESS)<0)return EVC_ERROR;
+  // PREP is adapted to fixed deployment. Chapter6 enters it after FADI;
+  // restore the map through the original blocking fade, normally owned by preparations.
+  if(gPlaySt.chapterIndex==7){fe8_background_set(-1);StartLockingFadeFromBlack(16,p);p->evStateBits&=~EV_STATE_FADEDIN;SetDispEnable(1,1,1,1,1);}
+  return EVC_ADVANCE_YIELD;
+ }
  case 46:if(sub==1){gEventSlots[12]=eventActor?eventActor->pCharacterData->number:0;return EVC_ADVANCE_CONTINUE;}return EVC_ERROR;
  case 51:if(sub==4&&!eventActor)return EVC_ERROR;return Event33_CheckUnitVarious(p);
  case 50:return Event32_SpawnSingleUnit(p);
