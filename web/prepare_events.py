@@ -68,7 +68,7 @@ a,n=symbols['gDefeatTalkList'];table=rom[a-0x8000000:a-0x8000000+n]
 for j in range(0,n,12):
  row=table[j:j+12];pid=int.from_bytes(row[:2],'little')
  if pid==65535:break
- if pid in [1,2,3,4,5,6,7,8,9,10,12,13,15,16,17,19,20,32,66,106,70,71,72,73,74,104] and row[3] in [0,1,2,3,4,5,6,7,255]:
+ if pid in [1,2,3,4,5,6,7,8,9,10,12,13,15,16,17,19,20,32,66,106,70,71,72,73,74,75,104,176,249,250,251] and row[3] in [0,1,2,3,4,5,6,7,255]:
   msg=int.from_bytes(row[6:8],'little')
   if msg:deathMessages.add(msg)
 texts=(root/'texts/texts.txt').read_text();messages={};pageCounts=[];pauseRows=[]

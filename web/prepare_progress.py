@@ -43,3 +43,5 @@ shrink=function('src/bmcontainer.c','ShrinkConvoyItemList').replace('u16 * buffe
 (root/'web/generated/progress_convoy_remove.h').write_text(shrink+'\n'+function('src/bmcontainer.c','RemoveItemFromConvoy'))
 
 (root/'web/generated/fog_routines.h').write_text(function('src/bmunit.c','GetUnitFogViewRange')+'\n'+function('src/bmidoten.c','MapAddInRange'))
+
+(root/'web/generated/progress_area.h').write_text(function('src/eventscr.c','Event36_CheckInArea').replace('    gEventSlots[0xc] = ret = 0;','    if(!unit)return EVC_ERROR;\n    gEventSlots[0xc] = ret = 0;'))

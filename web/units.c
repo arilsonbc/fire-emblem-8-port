@@ -64,10 +64,10 @@ int fe8_units_load(u32 address,int animated){
  for(int i=0;i<count;i++){
   struct UnitDefinition definition=defs[i];if(loadNoReda){definition.redaCount=0;definition.redas=NULL;}const struct UnitDefinition *d=&definition;int faction=d->allegiance==2?128:d->allegiance==1?64:0;
   struct Unit *u=faction==0?GetUnitFromCharId(d->charIndex):NULL;if(!u||UNIT_FACTION(u)!=faction)u=GetFreeUnit(faction);if(!u){unitError++;return -3;}
-  int existed=UNIT_IS_VALID(u);int reuse=(gPlaySt.chapterIndex==1||gPlaySt.chapterIndex==2||gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==4||gPlaySt.chapterIndex==6||fe8_event_story_chapter()==5||gPlaySt.chapterIndex==0x38)&&faction==0&&UNIT_IS_VALID(u);
+  int existed=UNIT_IS_VALID(u);int reuse=(gPlaySt.chapterIndex==1||gPlaySt.chapterIndex==2||gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==4||gPlaySt.chapterIndex==6||gPlaySt.chapterIndex==7||fe8_event_story_chapter()==5||gPlaySt.chapterIndex==0x38)&&faction==0&&UNIT_IS_VALID(u);
   if(!reuse){ClearUnit(u);UnitInitFromDefinition(u,d);UnitLoadStatsFromChracter(u,u->pCharacterData);UnitLoadSupports(u);if(d->autolevel)UnitAutolevel(u);UnitCheckStatCaps(u);SetUnitHp(u,GetUnitMaxHp(u));}
   else {s8 x,y;GenUnitDefinitionFinalPosition(d,&x,&y,0);u->xPos=x;u->yPos=y;u->state&=~US_UNSELECTABLE;}
-  if((gPlaySt.chapterIndex>=1&&gPlaySt.chapterIndex<=5||gPlaySt.chapterIndex==6)&&faction==128&&u->pCharacterData->number>=0x3c){int bonus=gPlaySt.chapterStateBits&PLAY_FLAG_HARD?progressChapters[(u8)gPlaySt.chapterIndex].hard:-(gPlaySt.config.controller?progressChapters[(u8)gPlaySt.chapterIndex].normal:progressChapters[(u8)gPlaySt.chapterIndex].easy);UnitApplyBonusLevels(u,bonus);}
+  if((gPlaySt.chapterIndex>=1&&gPlaySt.chapterIndex<=7)&&faction==128&&u->pCharacterData->number>=0x3c){int bonus=gPlaySt.chapterStateBits&PLAY_FLAG_HARD?progressChapters[(u8)gPlaySt.chapterIndex].hard:-(gPlaySt.config.controller?progressChapters[(u8)gPlaySt.chapterIndex].normal:progressChapters[(u8)gPlaySt.chapterIndex].easy);UnitApplyBonusLevels(u,bonus);}
   if(faction==0){if(loadCutscene){if(!existed||u->state&US_DEAD)u->state|=US_BIT22;}else u->state&=~US_BIT22;}
   if(!(u->state&US_DEAD))u->state&=~(US_HIDDEN|US_NOT_DEPLOYED);
   if(d->itemDrop)u->state|=US_DROP_ITEM;

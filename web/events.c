@@ -85,7 +85,7 @@ int fe8_event_flag(int id){return CheckFlag(id);}
 void fe8_event_pack_permanent(u8 *out){memset(out,0,25);for(int i=0;i<200;i++)if(CheckFlag(101+i))out[i>>3]|=1u<<(i&7);}
 void fe8_event_load_permanent(const u8 *data){for(int i=0;i<200;i++)eventFlags[101+i]=!!(data[i>>3]&(1u<<(i&7)));}
 
-static void AddChapterJob(int kind){if((gPlaySt.chapterIndex!=0&&gPlaySt.chapterIndex!=1&&gPlaySt.chapterIndex!=2&&gPlaySt.chapterIndex!=3&&gPlaySt.chapterIndex!=4&&gPlaySt.chapterIndex!=5&&gPlaySt.chapterIndex!=6)||preview)return;if(chapterJobCount>=4){blocked=258;return;}chapterJobs[chapterJobCount].kind=kind;chapterJobs[chapterJobCount].actor=kind==2&&eventActor?(u8)eventActor->index:0;chapterJobs[chapterJobCount++].cursor=0;}
+static void AddChapterJob(int kind){if((gPlaySt.chapterIndex!=0&&gPlaySt.chapterIndex!=1&&gPlaySt.chapterIndex!=2&&gPlaySt.chapterIndex!=3&&gPlaySt.chapterIndex!=4&&gPlaySt.chapterIndex!=5&&gPlaySt.chapterIndex!=6&&gPlaySt.chapterIndex!=7)||preview)return;if(chapterJobCount>=4){blocked=258;return;}chapterJobs[chapterJobCount].kind=kind;chapterJobs[chapterJobCount].actor=kind==2&&eventActor?(u8)eventActor->index:0;chapterJobs[chapterJobCount++].cursor=0;}
 void fe8_event_phase(void){AddChapterJob(1);}
 extern struct Unit *GetUnit(int index);
 extern u16 CountRedUnits(void);
@@ -112,7 +112,7 @@ extern int GetUnitItemSlot(struct Unit *u,int item);
 #define TILE_COMMAND_SECRET 0x18
 #include "generated/shop_events.h"
 static int FindTileEvent(int x,int y,struct EventInfo *info){
- if(preview||x<0||y<0||x>=fe8_map_info(1)||y>=fe8_map_info(2))return 0;const u32 *list=gPlaySt.chapterIndex==5?EventListScr_Ch5x_Location:gPlaySt.chapterIndex==6?EventListScr_Ch5_Location:gPlaySt.chapterIndex==4?EventListScr_Ch4_Location:gPlaySt.chapterIndex==3?EventListScr_Ch3_Location:gPlaySt.chapterIndex==1?EventListScr_Ch1_Location:gPlaySt.chapterIndex==2?EventListScr_Ch2_Location:NULL;int words=gPlaySt.chapterIndex==5?ARRAY_COUNT(EventListScr_Ch5x_Location):gPlaySt.chapterIndex==6?ARRAY_COUNT(EventListScr_Ch5_Location):gPlaySt.chapterIndex==4?ARRAY_COUNT(EventListScr_Ch4_Location):gPlaySt.chapterIndex==3?ARRAY_COUNT(EventListScr_Ch3_Location):gPlaySt.chapterIndex==1?ARRAY_COUNT(EventListScr_Ch1_Location):ARRAY_COUNT(EventListScr_Ch2_Location);if(!list)return 0;
+ if(preview||x<0||y<0||x>=fe8_map_info(1)||y>=fe8_map_info(2))return 0;const u32 *list=gPlaySt.chapterIndex==7?EventListScr_Ch6_Location:gPlaySt.chapterIndex==5?EventListScr_Ch5x_Location:gPlaySt.chapterIndex==6?EventListScr_Ch5_Location:gPlaySt.chapterIndex==4?EventListScr_Ch4_Location:gPlaySt.chapterIndex==3?EventListScr_Ch3_Location:gPlaySt.chapterIndex==1?EventListScr_Ch1_Location:gPlaySt.chapterIndex==2?EventListScr_Ch2_Location:NULL;int words=gPlaySt.chapterIndex==7?ARRAY_COUNT(EventListScr_Ch6_Location):gPlaySt.chapterIndex==5?ARRAY_COUNT(EventListScr_Ch5x_Location):gPlaySt.chapterIndex==6?ARRAY_COUNT(EventListScr_Ch5_Location):gPlaySt.chapterIndex==4?ARRAY_COUNT(EventListScr_Ch4_Location):gPlaySt.chapterIndex==3?ARRAY_COUNT(EventListScr_Ch3_Location):gPlaySt.chapterIndex==1?ARRAY_COUNT(EventListScr_Ch1_Location):ARRAY_COUNT(EventListScr_Ch2_Location);if(!list)return 0;
  for(int i=0;i+2<words&&list[i];i+=3){const u32 *r=list+i;int code=r[0]&65535;if(CheckFlag(r[0]>>16)||(code!=5&&code!=6&&code!=7&&code!=8&&code!=10))continue;*info=(struct EventInfo){.listScript=r,.xPos=x,.yPos=y};if((code==7?EvCheck07_CHES(info):code==8?EvCheck08_DOOR(info):code==10?EvCheck0A_SHOP(info):EvCheck05_LOCA(info))&&info->script){if((info->commandId==0x14&&fe8_map_terrain(x,y)!=33)||(info->commandId==0x12&&fe8_map_terrain(x,y)!=30))continue;if(code==6)info->givenMoney=3;return 1;}}return 0; // Original EvCheck06_VILL lacks a C return: defined equivalent of its LOCA match + givenMoney=3.
 }
 int fe8_event_shop_item(int x,int y,int row){struct EventInfo info;if(row<0||!FindTileEvent(x,y,&info)||(info.commandId!=0x16&&info.commandId!=0x17))return 0;for(int i=0;i<ARRAY_COUNT(shopLists);i++)if(shopLists[i].address==info.script&&row<shopLists[i].count)return fe8_unit_make_item(shopLists[i].items[row]);return 0;}
@@ -161,10 +161,11 @@ static void Sound_SetSEVolume(int volume){fe8_audio_volume(volume,volume,1);}
 static void PlaySoundEffect(int song){fe8_audio_se(song);}
 #include "generated/audio_events.h"
 #include "generated/progress_events.h"
+#include "generated/progress_area.h"
 static int Command(struct EventEngineProc *p){
  const u16 *s=p->pEventCurrent;int code=s[0]>>8,sub=s[0]&15,a=(s16)s[1];
  switch(code){
- case 0:return Event00_NULL(p);case 1:return Event01_End(p);case 2:return Event02_EvBitAndIdMod(p);case 3:return Event03_CheckEvBitOrId(p);
+ case 0:return Event00_NULL(p);case 1:return Event01_End(p);case 2:return Event02_EvBitAndIdMod(p);case 3:return Event03_CheckEvBitOrId(p);case 4:return Event04_CheckRandom(p);
  case 5:if(s[1]>=14)return EVC_ERROR;return Event05_SetSlot(p);
  case 6:{int src=s[1]>>8&15;if((s[1]&15)>=14||(s[1]>>4&15)>=14||src>=14)return EVC_ERROR;if((sub==3||sub==4)&&!gEventSlots[src])return EVC_ERROR;if((sub==8||sub==9)&&gEventSlots[src]>=32)return EVC_ERROR;return Event06_SlotOperation(p);}
  case 7:if((sub==0||sub==2)&&s[1]>=14)return EVC_ERROR;return Event07_SlotQueueOperations(p);
@@ -186,9 +187,9 @@ static int Command(struct EventEngineProc *p){
  case 37:{int chapter=a<0?gEventSlots[2]:a;if(fe8_map_start(chapter)<0)return EVC_ERROR;gPlaySt.chapterIndex=chapter;fe8_map_focus(gEventSlots[11]&65535,gEventSlots[11]>>16);if(p->evStateBits&EV_STATE_FADEDIN)SetDispEnable(0,0,0,0,0);return EVC_ADVANCE_YIELD;}
  case 38:{struct Unit *u=(sub&7)==1?EventUnit(a):NULL;if((sub&7)==1&&!u)return EVC_ERROR;fe8_map_focus(u?u->xPos:s[1]&255,u?u->yPos:s[1]>>8);return EVC_ADVANCE_YIELD;}
  case 39:{int id=a;if(id==-1)id=fe8_map_change_at(gEventSlots[11]&65535,gEventSlots[11]>>16);else if(id==-2){if(!eventActor)return EVC_ERROR;id=fe8_map_change_at(eventActor->xPos,eventActor->yPos);}if(id<0)return EVC_ERROR;return fe8_map_change(id,sub&1)<0?EVC_ERROR:EVC_ADVANCE_CONTINUE;}
- case 42:{int to=a<0?(int)gEventSlots[2]:a;if(preview||!(((gPlaySt.chapterIndex==0&&to==1||gPlaySt.chapterIndex==6&&to==5)&&sub==EVSUBCMD_MNC2)||((gPlaySt.chapterIndex==1&&to==0x38||gPlaySt.chapterIndex==0x38&&to==2||gPlaySt.chapterIndex==2&&to==3||(gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==27&&engine.chapterIndex==3)&&to==4||gPlaySt.chapterIndex==4&&to==6)&&sub==EVSUBCMD_MNCH)))return EVC_ERROR;return Event2A_MoveToChapter(p);}
+ case 42:{int to=a<0?(int)gEventSlots[2]:a;if(preview||!(((gPlaySt.chapterIndex==0&&to==1||gPlaySt.chapterIndex==6&&to==5)&&sub==EVSUBCMD_MNC2)||((gPlaySt.chapterIndex==1&&to==0x38||gPlaySt.chapterIndex==0x38&&to==2||gPlaySt.chapterIndex==2&&to==3||(gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==27&&engine.chapterIndex==3)&&to==4||gPlaySt.chapterIndex==4&&to==6||engine.chapterIndex==5&&gPlaySt.chapterIndex==8&&to==7)&&sub==EVSUBCMD_MNCH)))return EVC_ERROR;return Event2A_MoveToChapter(p);}
  case 43:if(sub!=2)return EVC_ERROR;noRedaNext=1;return EVC_ADVANCE_CONTINUE;
- case 62:if(gPlaySt.chapterIndex!=4&&gPlaySt.chapterIndex!=6)return EVC_ERROR;return fe8_units_deploy_existing(gPlaySt.chapterIndex==6?UnitDef_Event_Ch5Ally_ADDRESS:UnitDef_Event_Ch4Ally_ADDRESS)<0?EVC_ERROR:EVC_ADVANCE_YIELD; // Native fixed original deployment; preparation UI remains pending.
+ case 62:if(gPlaySt.chapterIndex!=4&&gPlaySt.chapterIndex!=6&&gPlaySt.chapterIndex!=7)return EVC_ERROR;return fe8_units_deploy_existing(gPlaySt.chapterIndex==7?UnitDef_Event_Ch6Ally_ADDRESS:gPlaySt.chapterIndex==6?UnitDef_Event_Ch5Ally_ADDRESS:UnitDef_Event_Ch4Ally_ADDRESS)<0?EVC_ERROR:EVC_ADVANCE_YIELD; // Native fixed original deployment; preparation UI remains pending.
  case 46:if(sub==1){gEventSlots[12]=eventActor?eventActor->pCharacterData->number:0;return EVC_ADVANCE_CONTINUE;}return EVC_ERROR;
  case 51:if(sub==4&&!eventActor)return EVC_ERROR;return Event33_CheckUnitVarious(p);
  case 50:return Event32_SpawnSingleUnit(p);
@@ -203,17 +204,19 @@ static int Command(struct EventEngineProc *p){
   if(sub>=2&&sub<=4){int old=(u8)u->index,next=fe8_unit_change_faction(old,(sub-2)*64);if(next<0)return EVC_ERROR;if(eventActor==u)fe8_event_actor(next);}else if(sub==0){u->state|=US_HIDDEN|US_BIT16|US_BIT26;}else if(sub==1){u->state&=~(US_HIDDEN|US_BIT16|US_BIT26);}else if(sub==13){u->state|=US_HIDDEN;}else if(sub==5){u->curHP=gEventSlots[1]<u->maxHP?gEventSlots[1]:u->maxHP;if(!u->curHP)u->state|=US_DEAD;}
   else if(sub==6)u->state|=US_UNSELECTABLE;else if(sub==7)u->state|=US_HAS_MOVED;else if(sub==8){if(gEventSlots[1]==1)u->state&=~US_NOT_DEPLOYED;else if(!gEventSlots[1])u->state|=US_NOT_DEPLOYED;else if((s32)gEventSlots[1]==-1){if(u->state&US_BIT21)u->state|=US_NOT_DEPLOYED;else u->state&=~US_NOT_DEPLOYED;}else return EVC_ERROR;}else if(sub==15||sub==14)fe8_unit_remove_index((u8)u->index);
   else return EVC_ERROR;return EVC_ADVANCE_CONTINUE;}
+ case 54:return Event36_CheckInArea(p);
  case 55:{struct Unit *u=EventUnit(a);if(!u)return EVC_ERROR;if(sub==1){if(UNIT_FACTION(u)==FACTION_BLUE)SetPartyGoldAmount(GetPartyGoldAmount()+gEventSlots[3]);return EVC_ADVANCE_YIELD;}if(sub!=0)return EVC_ERROR;if(itemResolved){itemResolved=0;return EVC_ADVANCE_YIELD;}if(fe8_unit_give(u->pCharacterData->number,gEventSlots[3])>0)return EVC_ADVANCE_YIELD;pendingItem=fe8_unit_make_item(gEventSlots[3]);if(!pendingItem)return EVC_ERROR;pendingUnit=(u8)u->index;pendingChoice=5;pendingOrigin=1;return EVC_STOP_YIELD;} // Native inventory-full choice replaces original popup/ConvoyMenu Procs; no item is silently discarded.
  case 57:{if(sub!=0)return EVC_ERROR;ChangeAiForCharacter(a<0?gEventSlots[2]:a,gEventSlots[1]&255,gEventSlots[1]>>8&255,gEventSlots[1]>>16&255);return EVC_ADVANCE_CONTINUE;}
  case 58:if(sub==0&&s[2])fe8_audio_se(s[2]);return ShowText(s[1]); // Adapted notification/brown-box presentation.
  case 61:if(sub>2)return EVC_ERROR;return Event3D_MenuOverride(p);
  case 63:if(sub==2)return fe8_battle_set_script(queue,gEventSlots[13])<0?EVC_ERROR:EVC_ADVANCE_CONTINUE;else if(sub<=1){struct Unit *a=EventUnit((s16)s[1]<0?-2:s[1]),*b=EventUnit((s16)s[2]<0?-2:s[2]);if(!UNIT_IS_VALID(a)||!UNIT_IS_VALID(b))return EVC_ERROR;return fe8_battle_start(a->pCharacterData->number,b->pCharacterData->number,s[3]&255,s[3]>>8,queue,gEventSlots[13])<0?EVC_ERROR:EVC_ADVANCE_YIELD;}return EVC_ERROR;
  case 59:{if((sub&3)==2)return EVC_ADVANCE_CONTINUE;struct Unit *u=(sub&3)==1?EventUnit(a):NULL;int x=u?u->xPos:s[1]&255,y=u?u->yPos:s[1]>>8;fe8_map_focus(x,y);return EVC_ADVANCE_CONTINUE;}
+ case 65:if(p->chapterIndex!=7||(sub!=0&&sub!=1&&sub!=15))return EVC_ERROR;requests=65;return EVC_ADVANCE_YIELD; // Warp presentation boundary; original REMU/REVEAL/STAL retain unit/timing effects.
  case 166:if(preview||s[1]!=0||s[2]!=0||!((p->chapterIndex==5&&s[3]==5)||(p->chapterIndex==6&&s[3]==8)))return EVC_ERROR;requests=166;return EVC_ADVANCE_CONTINUE; // Known original WM placements; travel presentation remains adapted.
  default:return EVC_ERROR;
  }
 }
-int fe8_event_item_info(int field){return field==0?pendingItem:field==1?pendingUnit:field==2?pendingChoice:field==3?((gPlaySt.chapterIndex==2||gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==4||gPlaySt.chapterIndex==6)&&fe8_convoy_count()<100):field==4?fe8_convoy_count():field==5?lastRewardItem:field==6?lastRewardUnit:field==7?rewardSerial:-1;}
+int fe8_event_item_info(int field){return field==0?pendingItem:field==1?pendingUnit:field==2?pendingChoice:field==3?((gPlaySt.chapterIndex==2||gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==4||gPlaySt.chapterIndex==6||gPlaySt.chapterIndex==7)&&fe8_convoy_count()<100):field==4?fe8_convoy_count():field==5?lastRewardItem:field==6?lastRewardUnit:field==7?rewardSerial:-1;}
 int fe8_event_item_choose(int slot){if(!pendingItem||slot<0||slot>5)return -1;struct Unit *u=GetUnit(pendingUnit);if(!UNIT_IS_VALID(u))return -2;int item=slot==5?pendingItem:u->items[slot];if(!item)return -3;if(fe8_event_item_info(3)&&fe8_convoy_add(item)<0)return -4;if(slot<5)u->items[slot]=pendingItem;pendingItem=0;itemResolved=pendingOrigin;pendingOrigin=0;fe8_audio_se(0x6a);return 0;}
 void fe8_event_reward(int unit,int item,int gold){if(rewardValue||pendingItem){blocked=263;return;}rewardUnit=unit;rewardValue=item;rewardGold=gold;}
 void fe8_event_tick(int keys){
@@ -237,8 +240,8 @@ static void DispatchChapterJobs(void){
  if(running||blocked>=0||textId>=0||pendingItem||rewardValue||fe8_battle_busy())return;
  while(chapterJobCount){
   int chapter=gPlaySt.chapterIndex;int kind=chapterJobs[0].kind;
-  const u32 *list=chapter==5?(kind==1?EventListScr_Ch5x_Turn:EventListScr_Ch5x_Misc):chapter==6?(kind==1?EventListScr_Ch5_Turn:EventListScr_Ch5_Misc):chapter==4?(kind==1?EventListScr_Ch4_Turn:EventListScr_Ch4_Misc):chapter==3?(kind==1?EventListScr_Ch3_Turn:EventListScr_Ch3_Misc):chapter==2?(kind==1?EventListScr_Ch2_Turn:EventListScr_Ch2_Misc):chapter==1?(kind==1?EventListScr_Ch1_Turn:EventListScr_Ch1_Misc):(kind==1?EventListScr_Prologue_Turn:EventListScr_Prologue_Misc);
-  int words=chapter==5?(kind==1?sizeof(EventListScr_Ch5x_Turn)/4:sizeof(EventListScr_Ch5x_Misc)/4):chapter==6?(kind==1?sizeof(EventListScr_Ch5_Turn)/4:sizeof(EventListScr_Ch5_Misc)/4):chapter==4?(kind==1?sizeof(EventListScr_Ch4_Turn)/4:sizeof(EventListScr_Ch4_Misc)/4):chapter==3?(kind==1?sizeof(EventListScr_Ch3_Turn)/4:sizeof(EventListScr_Ch3_Misc)/4):chapter==2?(kind==1?sizeof(EventListScr_Ch2_Turn)/4:sizeof(EventListScr_Ch2_Misc)/4):chapter==1?(kind==1?sizeof(EventListScr_Ch1_Turn)/4:sizeof(EventListScr_Ch1_Misc)/4):(kind==1?sizeof(EventListScr_Prologue_Turn)/4:sizeof(EventListScr_Prologue_Misc)/4);
+  const u32 *list=chapter==7?(kind==1?EventListScr_Ch6_Turn:EventListScr_Ch6_Misc):chapter==5?(kind==1?EventListScr_Ch5x_Turn:EventListScr_Ch5x_Misc):chapter==6?(kind==1?EventListScr_Ch5_Turn:EventListScr_Ch5_Misc):chapter==4?(kind==1?EventListScr_Ch4_Turn:EventListScr_Ch4_Misc):chapter==3?(kind==1?EventListScr_Ch3_Turn:EventListScr_Ch3_Misc):chapter==2?(kind==1?EventListScr_Ch2_Turn:EventListScr_Ch2_Misc):chapter==1?(kind==1?EventListScr_Ch1_Turn:EventListScr_Ch1_Misc):(kind==1?EventListScr_Prologue_Turn:EventListScr_Prologue_Misc);
+  int words=chapter==7?(kind==1?sizeof(EventListScr_Ch6_Turn)/4:sizeof(EventListScr_Ch6_Misc)/4):chapter==5?(kind==1?sizeof(EventListScr_Ch5x_Turn)/4:sizeof(EventListScr_Ch5x_Misc)/4):chapter==6?(kind==1?sizeof(EventListScr_Ch5_Turn)/4:sizeof(EventListScr_Ch5_Misc)/4):chapter==4?(kind==1?sizeof(EventListScr_Ch4_Turn)/4:sizeof(EventListScr_Ch4_Misc)/4):chapter==3?(kind==1?sizeof(EventListScr_Ch3_Turn)/4:sizeof(EventListScr_Ch3_Misc)/4):chapter==2?(kind==1?sizeof(EventListScr_Ch2_Turn)/4:sizeof(EventListScr_Ch2_Misc)/4):chapter==1?(kind==1?sizeof(EventListScr_Ch1_Turn)/4:sizeof(EventListScr_Ch1_Misc)/4):(kind==1?sizeof(EventListScr_Prologue_Turn)/4:sizeof(EventListScr_Prologue_Misc)/4);
   eventActor=chapterJobs[0].actor?GetUnit(chapterJobs[0].actor):NULL;
   int cursor=chapterJobs[0].cursor;
   if(cursor>=words||!list[cursor]){for(int i=1;i<chapterJobCount;i++)chapterJobs[i-1]=chapterJobs[i];chapterJobCount--;continue;}
@@ -259,10 +262,11 @@ int fe8_event_preview(void){
  fe8_unit_give(1,0x09);fe8_map_focus(4,5);return 0;
 }
 void fe8_chapter_start(void){
- int chapter=(u8)gPlaySt.chapterIndex;fe8_event_reset();fe8_map_start(chapter);
+ int chapter=(u8)gPlaySt.chapterIndex;if(chapter==7){gPlaySt.chapterVisionRange=progressChapters[7].fog;gPlaySt.chapterWeatherId=progressChapters[7].weather;}fe8_event_reset();fe8_map_start(chapter);
  int count=fe8_units_restore(gPlaySt.gameSaveSlot);fe8_event_load_permanent(fe8_save_loaded_flags());fe8_save_checkpoint_capture();
  if(chapter==0&&count==0){fe8_event_start(EventScr_Prologue_BeginningScene_ADDRESS);engine.evStateBits|=EV_STATE_FADEDIN;SetDispEnable(0,0,0,0,0);}
  else if(chapter==1){fe8_event_start(EventScr_Ch1_BeginningScene_ADDRESS);}
+ else if(chapter==7){fe8_event_start(EventScr_Ch6_BeginningScene_ADDRESS);}
  else if(chapter==5){fe8_event_start(EventScr_Ch5x_BeginningScene_ADDRESS);}
  else if(chapter==6){fe8_event_start(EventScr_Ch5_BeginningScene_ADDRESS);}
  else if(chapter==4){fe8_event_start(EventScr_Ch4_BeginningScene_ADDRESS);}
@@ -273,7 +277,7 @@ void fe8_chapter_start(void){
 }
 static void ApplyRequestedChapter(void){
  if(requestedChapter<0||fe8_event_busy()||EventFadePending()||fe8_units_busy())return;
- int to=requestedChapter;requestedChapter=-1;if(!(((gPlaySt.chapterIndex==0&&to==1||gPlaySt.chapterIndex==6&&to==5)&&progressAction==GAME_ACTION_USR_SKIPPED)||((gPlaySt.chapterIndex==1&&to==0x38||gPlaySt.chapterIndex==0x38&&to==2||gPlaySt.chapterIndex==2&&to==3||(gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==27&&engine.chapterIndex==3)&&to==4||gPlaySt.chapterIndex==4&&to==6)&&progressAction==GAME_ACTION_CLASS_REEL))){blocked=42;progressError=2;return;}
+ int to=requestedChapter;requestedChapter=-1;if(!(((gPlaySt.chapterIndex==0&&to==1||gPlaySt.chapterIndex==6&&to==5)&&progressAction==GAME_ACTION_USR_SKIPPED)||((gPlaySt.chapterIndex==1&&to==0x38||gPlaySt.chapterIndex==0x38&&to==2||gPlaySt.chapterIndex==2&&to==3||(gPlaySt.chapterIndex==3||gPlaySt.chapterIndex==27&&engine.chapterIndex==3)&&to==4||gPlaySt.chapterIndex==4&&to==6||engine.chapterIndex==5&&gPlaySt.chapterIndex==8&&to==7)&&progressAction==GAME_ACTION_CLASS_REEL))){blocked=42;progressError=2;return;}
  progressFrom=engine.chapterIndex;progressTo=to;lastWin=CheckFlag(3);lastBoss=CheckFlag(2);
  for(int i=0;i<3;i++)NextRN();StoreRNState(monsterRN);
  fe8_units_chapter_cleanup();u8 permanent[412];memcpy(permanent,eventFlags+100,sizeof(permanent));
@@ -282,13 +286,13 @@ static void ApplyRequestedChapter(void){
  gPlaySt.chapterVisionRange=progressChapters[to].fog;gPlaySt.chapterWeatherId=progressChapters[to].weather;gPlaySt.tutorial_counter=gPlaySt.tutorial_exec_type=0;gPlaySt.unk48=gPlaySt.unk4A_1=0;
  fe8_map_start(to);for(int i=1;i<64;i++){struct Unit *u=GetUnit(i);if(UNIT_IS_VALID(u)&&!(u->state&US_BIT21))u->state&=~US_NOT_DEPLOYED;}
  fe8_save_checkpoint_capture();
- const u16 *p=ResolveScript(to==5?EventScr_Ch5x_BeginningScene_ADDRESS:to==1?EventScr_Ch1_BeginningScene_ADDRESS:to==2?EventScr_Ch2_BeginningScene_ADDRESS:to==3?EventScr_Ch3_BeginningScene_ADDRESS:to==4?EventScr_Ch4_BeginningScene_ADDRESS:to==6?EventScr_Ch5_BeginningScene_ADDRESS:EventScr_CastleFelia_BeginningScene_ADDRESS);memset(&engine,0,sizeof(engine));engine.pEventStart=engine.pEventIdk=engine.pEventCurrent=p;engine.execType=EV_EXEC_GAMEPLAY;engine.chapterIndex=to;running=1;progressCount++;
- if(to==0x38||to==2||to==3||to==4||to==5||to==6){engine.evStateBits|=EV_STATE_FADEDIN;gLCDControlBuffer.blendY=16;gLCDControlBuffer.blendMode=3;}
+ const u16 *p=ResolveScript(to==7?EventScr_Ch6_BeginningScene_ADDRESS:to==5?EventScr_Ch5x_BeginningScene_ADDRESS:to==1?EventScr_Ch1_BeginningScene_ADDRESS:to==2?EventScr_Ch2_BeginningScene_ADDRESS:to==3?EventScr_Ch3_BeginningScene_ADDRESS:to==4?EventScr_Ch4_BeginningScene_ADDRESS:to==6?EventScr_Ch5_BeginningScene_ADDRESS:EventScr_CastleFelia_BeginningScene_ADDRESS);memset(&engine,0,sizeof(engine));engine.pEventStart=engine.pEventIdk=engine.pEventCurrent=p;engine.execType=EV_EXEC_GAMEPLAY;engine.chapterIndex=to;running=1;progressCount++;
+ if(to==0x38||to==2||to==3||to==4||to==5||to==6||to==7){engine.evStateBits|=EV_STATE_FADEDIN;gLCDControlBuffer.blendY=16;gLCDControlBuffer.blendMode=3;}
  // MNCH world-map travel/narration and save menu are not ported: adapted direct entry.
  // Original chapter-intro title/graphics are not yet ported: adapted immediate map presentation.
  SetDispEnable(1,1,1,1,1);
 }
-void fe8_chapter_tick(int keys){fe8_save_playtime_tick();fe8_gameover_tick(keys);if(fe8_gameover_info(0)>0)return;fe8_battle_tick();fe8_units_tick();fe8_dialogue_tick();fe8_event_tick(keys);ApplyRequestedChapter();DispatchChapterJobs();if(!fe8_event_busy()&&(fe8_map_info(0)==0||fe8_map_info(0)==1||fe8_map_info(0)==2||fe8_map_info(0)==3||fe8_map_info(0)==4||fe8_map_info(0)==5||fe8_map_info(0)==6)&&fe8_tactical_info(0)<0)fe8_tactical_start();fe8_tactical_tick(keys);}
+void fe8_chapter_tick(int keys){fe8_save_playtime_tick();fe8_gameover_tick(keys);if(fe8_gameover_info(0)>0)return;fe8_battle_tick();fe8_units_tick();fe8_dialogue_tick();fe8_event_tick(keys);ApplyRequestedChapter();DispatchChapterJobs();if(!fe8_event_busy()&&(fe8_map_info(0)==0||fe8_map_info(0)==1||fe8_map_info(0)==2||fe8_map_info(0)==3||fe8_map_info(0)==4||fe8_map_info(0)==5||fe8_map_info(0)==6||fe8_map_info(0)==7)&&fe8_tactical_info(0)<0)fe8_tactical_start();fe8_tactical_tick(keys);}
 
 void fe8_event_test_tick(int keys){Proc_Run(gProcTreeRootArray[4]);fe8_chapter_tick(keys);fe8_map_tick(0);}
 
